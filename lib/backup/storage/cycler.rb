@@ -13,25 +13,32 @@ module Backup
       def cycle!
         Logger.info 'Cycling Started...'
 
+        to_be_deleted = []
         packages = yaml_load.unshift(package)
-        excess = packages.count - keep.to_i
 
-        if excess > 0
-          packages.pop(excess).each do |pkg|
-            begin
-              remove!(pkg) unless pkg.no_cycle
-            rescue => err
-              Logger.warn Error.wrap(err, <<-EOS)
-                There was a problem removing the following package:
-                Trigger: #{pkg.trigger} :: Dated: #{pkg.time}
-                Package included the following #{ pkg.filenames.count } file(s):
-                #{ pkg.filenames.join("\n") }
-              EOS
-            end
-          end
+        if keep.is_a?(Date) || keep.is_a?(Time)
+          to_be_deleted = packages.select { |p| p.time_as_object < k.to_time }
+        else
+          excess = packages.count - keep.to_i
+          to_be_deleted = packages.pop(excess) if excess > 0
         end
 
+        to_be_deleted.each { |package| delete_package package }
+
         yaml_save(packages)
+      end
+
+      def delete_package(package)
+        begin
+          remove!(package) unless package.no_cycle
+        rescue => err
+          Logger.warn Error.wrap(err, <<-EOS)
+            There was a problem removing the following package:
+            Trigger: #{package.trigger} :: Dated: #{package.time}
+            Package included the following #{ package.filenames.count } file(s):
+            #{ package.filenames.join("\n") }
+          EOS
+        end
       end
 
       # Returns path to the YAML data file.
