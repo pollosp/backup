@@ -13,19 +13,22 @@ module Backup
       def cycle!
         Logger.info 'Cycling Started...'
 
-        to_be_deleted = []
         packages = yaml_load.unshift(package)
+        cycled_packages = []
 
         if keep.is_a?(Date) || keep.is_a?(Time)
-          to_be_deleted = packages.select { |p| p.time_as_object < k.to_time }
+          cycled_packages = packages.select do |p|
+            p.time_as_object < keep.to_time
+          end
         else
           excess = packages.count - keep.to_i
-          to_be_deleted = packages.pop(excess) if excess > 0
+          cycled_packages = packages.last(excess)
         end
 
-        to_be_deleted.each { |package| delete_package package }
+        saved_packages = packages - cycled_packages
+        cycled_packages.each { |package| delete_package package }
 
-        yaml_save(packages)
+        yaml_save(saved_packages)
       end
 
       def delete_package(package)
