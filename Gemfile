@@ -27,7 +27,7 @@ group :production do
   gem 'mail', '= 2.5.4' # patched
   gem 'twitter'
   gem 'hipchat'
-  gem 'json'
+  gem 'json', '= 1.8.2'
 end
 
 gem 'rspec'
